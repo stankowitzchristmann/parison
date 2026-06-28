@@ -1,0 +1,8 @@
+--extra-index-url https://download.pytorch.org/whl/cu117
+torch==1.13.1+cu117
+numpy==1.23.5
+scipy==1.9.3
+pydantic==2.5.3
+tomli==2.0.1
+onnx==1.13.1
+onnxruntime==1.13.1

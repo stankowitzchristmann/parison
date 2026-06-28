@@ -1,0 +1,53 @@
+name = "main"
+
+[glass]
+d_model = 172
+d_state = 16
+d_conv = 4
+expand = 2
+depth = 4
+dt_rank = 8
+modalities = ["icp", "abp", "ecg", "ehr"]
+action_dim = 6
+action_levels = 5
+horizon = 30
+lead_window = 30
+fuse_hidden = 64
+condition = true
+gated_fusion = true
+
+[feed]
+sample_hz = 1
+window_steps = 360
+stride_steps = 30
+icp_threshold = 22.0
+sustained_steps = 10
+ehr_dim = 24
+waveform_dim = 1
+cohort = 1024
+val_fraction = 0.2
+drop_rate = 0.15
+
+[oven]
+lr = 3.0e-4
+weight_decay = 0.05
+betas = [0.9, 0.999]
+warmup_steps = 2000
+max_epochs = 100
+grad_clip = 1.0
+scheduler = "cosine"
+early_stop_patience = 12
+forecast_weight = 1.0
+warning_weight = 1.0
+outcome_weight = 0.5
+huber_delta = 1.0
+
+[bench]
+per_device_batch = 32
+grad_accum = 16
+world_size = 8
+precision = "fp32"
+seed = 0
+adapt_steps = 24
+adapt_lr = 5.0e-4
+adapt_window = 120

@@ -1,0 +1,45 @@
+name = "bench_check"
+
+[glass]
+d_model = 24
+d_state = 8
+d_conv = 4
+expand = 2
+depth = 2
+dt_rank = 4
+modalities = ["icp", "abp", "ehr"]
+action_dim = 5
+action_levels = 5
+horizon = 6
+lead_window = 6
+fuse_hidden = 16
+condition = true
+gated_fusion = true
+
+[feed]
+window_steps = 32
+stride_steps = 8
+icp_threshold = 22.0
+sustained_steps = 4
+ehr_dim = 6
+waveform_dim = 1
+cohort = 24
+drop_rate = 0.1
+
+[oven]
+lr = 1.0e-3
+weight_decay = 0.0
+warmup_steps = 2
+max_epochs = 3
+early_stop_patience = 5
+outcome_weight = 0.5
+
+[bench]
+per_device_batch = 8
+grad_accum = 1
+world_size = 1
+precision = "fp32"
+seed = 0
+adapt_steps = 5
+adapt_lr = 1.0e-2
+adapt_window = 16

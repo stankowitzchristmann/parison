@@ -1,0 +1,30 @@
+Physiological corpora consumed by the bench. All four were reachable and license-checked
+on 2026-06-28. Credentialed sources require a signed PhysioNet data use agreement and CITI
+training before the bytes can be pulled; the open sources need only acceptance of their
+respective Open Data Commons terms.
+
+CHARIS database (charisdb), version 1.0.0
+  role        waveform substrate; ICP / ABP / ECG; per-patient leave-one-out cross validation
+  license     Open Data Commons Attribution License v1.0
+  access      open
+  url         https://physionet.org/content/charisdb/1.0.0/
+
+eICU Collaborative Research Database (eicu-crd), version 2.0
+  role        external generalization for short-lead crisis early warning
+  license     PhysioNet Credentialed Health Data License 1.5.0
+  access      credentialed (CITI training + signed DUA)
+  url         https://physionet.org/content/eicu-crd/2.0/
+
+MIMIC-IV, version 3.1
+  role        external generalization for in-hospital mortality discrimination and calibration
+  license     PhysioNet Credentialed Health Data License 1.5.0
+  access      credentialed (CITI training + signed DUA)
+  doi         10.13026/kpb9-mt58
+  url         https://physionet.org/content/mimiciv/3.1/
+
+MIMIC-IV Waveform Database (mimic4wdb), version 0.1.0
+  role        high-frequency waveform module aligned to MIMIC-IV stays
+  license     Open Data Commons Open Database License v1.0
+  access      open
+  doi         10.13026/a2mw-f949
+  url         https://physionet.org/content/mimic4wdb/0.1.0/

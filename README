@@ -1,0 +1,120 @@
+parison
+=======
+
+A bedside digital twin for intracranial pressure (ICP) in severe traumatic brain
+injury. The twin is a therapy-conditioned, multimodal selective state-space model:
+every clinical intervention is fed in as an exogenous control that reshapes the
+selective-scan parameters of the backbone, so the model can roll a patient forward
+under a *candidate* therapy and read off the ICP trajectory that would follow. On top
+of the shared latent it carries three readouts — a short-horizon ICP forecast, a
+short-lead intracranial-hypertension warning, and an in-hospital outcome estimate —
+fuses high-rate waveforms (ICP, ABP, ECG) with slower EHR signals through a presence-
+gated coincidence layer, and recalibrates itself to each new patient over a sliding
+window without touching the frozen population backbone.
+
+The package is named for the parison: the gob of glass that has been given its first
+breath but not yet its final form. The shop metaphor runs through the tree — glass is
+gathered, worked at the furnace, annealed in the lehr, measured with calipers.
+
+
+what lives where
+----------------
+
+  src/parison/gather       multimodal streams, sliding windows, the planted-signal cohort
+  src/parison/furnace      selective recurrence (Eq. 1), therapy conditioning (Eq. 2),
+                           presence-gated fusion (Eq. 4), the assembled twin and heads
+  src/parison/annealing    composite training objective and the sliding-window online
+                           recalibration (Eq. 3)
+  src/parison/soffietta    counterfactual roll-forward and the in-silico intervention
+                           ranker (Theorem 1, Proposition 1)
+  src/parison/lehr         trainer, cosine-with-warmup schedule, DDP wiring, atomic ckpts
+  src/parison/calipers     DeLong, bootstrap CI, calibration slope / ECE / Brier,
+                           decision-curve net benefit, NRI / IDI, the two-axis ICP signature
+  src/parison/proof        the evaluation harness
+  src/parison/bench        pydantic recipes (TOML), seeding, logging
+  src/parison/pipe         the `parison` command (train / evaluate / infer / export)
+  batches/                 one recipe per reported experiment plus bench_check (tests only)
+  proofs/                  the test bench
+
+
+installing
+----------
+
+Pinned to an older CUDA/PyTorch stack on purpose; the numbers below are what the
+bench was profiled against, not a suggestion to upgrade.
+
+  conda env create -f environment.yml
+  conda activate parison
+  pip install -e .
+
+or, if you already have the matched CUDA 11.7 wheels:
+
+  pip install -r requirements.txt
+  pip install -e .
+
+The optional `export` extra pulls onnx + onnxruntime for graph serialization.
+
+
+data
+----
+
+Four physiological corpora are listed, with role, version, license and access route,
+in glass-sources.txt. Two (CHARIS, MIMIC-IV Waveform) are open under Open Data Commons
+terms; two (eICU-CRD, MIMIC-IV) are PhysioNet-credentialed and need a signed data use
+agreement plus CITI training before any byte leaves PhysioNet. tools/fetch_glass.sh
+prints the exact retrieval commands. The bench ships a planted-signal synthetic cohort
+(src/parison/gather/synthetic.py) so the whole pipeline runs with zero credentials; the
+synthetic generator carries an explicit two-axis operating point (compensatory reserve,
+cerebrovascular reactivity) so the ICP-dynamics signature can be checked end to end.
+
+
+training
+--------
+
+  parison train --recipe batches/main.toml --out runs/main
+
+Multi-GPU is driven through torchrun:
+
+  NPROC=8 bash tools/launch_train.sh batches/main.toml runs/main
+
+Each reported result has its own recipe: ablation_unconditioned (frozen, un-conditioned
+backbone), ablation_ungated_fusion, ablation_frozen_population (adaptation switched off),
+task_b_short_lead, task_c_signature, task_e_counterfactual. Override any field on the
+command line, e.g. `--set bench.per_device_batch=16 oven.lr=1e-4`.
+
+
+evaluation
+----------
+
+  parison evaluate --recipe batches/main.toml --ckpt runs/main/best.ckpt
+
+reports the short-horizon forecast MAE, the intracranial-hypertension AUROC with its
+DeLong interval and recall at 0.90 specificity, and the outcome AUROC with Brier,
+calibration slope, expected calibration error and decision-curve net benefit. The
+intervention ranker is exercised with
+
+  parison infer --recipe batches/main.toml --ckpt runs/main/best.ckpt
+
+and a deployable graph is written with
+
+  parison export --recipe batches/main.toml --out parison.onnx
+
+
+compute budget
+--------------
+
+The main recipe is deliberately heavy. Defaults: 8x A100-80GB in one node, per-device
+batch 32 x grad-accum 16 x world-size 8 = effective batch 4096, full fp32 (no AMP),
+AdamW at 3e-4, cosine annealing with linear warmup, up to 100 epochs with early
+stopping. The deployed twin itself is small — about 3.4M parameters — and is profiled
+for single-frame inference on Jetson-class edge hardware; the cost lives in the
+population fit, not in the bedside loop. Budget storage for the full waveform corpora
+and intermediate windows accordingly.
+
+
+checkpoints
+-----------
+
+Checkpoints are written atomically (temp file then os.replace) and carry the random
+seed and the training-split normalization, so a resumed or evaluated run restores both.
+Trained weights are available upon reasonable request.
